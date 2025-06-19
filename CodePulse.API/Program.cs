@@ -2,6 +2,7 @@ using CodePulse.API.Data;
 using CodePulse.API.Repositories.Implementation;
 using CodePulse.API.Repositories.Interface;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 //Repositories Injection
 builder.Services.AddScoped<ICategoryRepository , CategoryRepository>();
+builder.Services.AddScoped<IBlogPostRepository, BlogPostRepository>();
 
 var app = builder.Build();
 
@@ -39,6 +41,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors(options =>
+{   options.AllowAnyHeader();
+    options.AllowAnyMethod();
+    options.AllowAnyOrigin();
+}  
+);
 
 app.UseAuthorization();
 
