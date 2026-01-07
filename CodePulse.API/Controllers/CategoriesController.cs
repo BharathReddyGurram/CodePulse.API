@@ -1,6 +1,7 @@
 ﻿using CodePulse.API.Models.Domain;
 using CodePulse.API.Models.DTO;
 using CodePulse.API.Repositories.Interface;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace CodePulse.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "SuperAdmin,Manager")]
     public class CategoriesController : ControllerBase
     {
         private readonly ICategoryRepository categoryRepository;
@@ -16,117 +18,97 @@ namespace CodePulse.API.Controllers
         {
             this.categoryRepository = categoryRepository;
         }
-        //HTTP POST METHOD TO CREATE A CATEGORY
-        [HttpPost]
-        public async Task<IActionResult> CreateCategory(CreateCategoryRequestDto request)
-        {
-            var category = new Category
-            {
-                Name = request.Name,
-                UrlHandle = request.UrlHandle
-            };
-            await categoryRepository.CreateAsync(category);
-            var response = new CategoryDto
-            {
-                Id = category.Id,
-                Name = category.Name,
-                UrlHandle = category.UrlHandle
-            };
-
-            return Ok(response);
-
-
-        }
-
-        //https://localhost:44306/api/Categories
         [HttpGet]
-        public async Task<IActionResult> GetAllCategories()
+        public async Task<ActionResult<IEnumerable<CategoryDto>>> GetAll()
         {
             var categories = await categoryRepository.GetAllAsync();
-            var response = new List<CategoryDto>();
-            foreach (var category in categories)
-            {
-                response.Add(new CategoryDto
-                {
-                    Id = category.Id,
-                    Name = category.Name,
-                    UrlHandle = category.UrlHandle
-                });
 
-            }
-            return Ok(response);
+            var result = categories.Select(c => new CategoryDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Description = c.Description,
+                IsActive = c.IsActive,
+                ProductCount = c.Products?.Count ?? 0
+            });
+
+            return Ok(result);
         }
 
-        //https://localhost:44306/api/Categories/{{id}}
-        [HttpGet]
-        [Route("{id}")]
-        public async Task<IActionResult> GetCategoryById([FromRoute] Guid id)
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<CategoryDto>> Get(int id)
         {
-            
-            var category = await categoryRepository.GetById(id);
-            if (category == null)
-            {
-                return NotFound();
-            }
-            else
-            {
-                var response = new CategoryDto
-                {
-                    Id = category.Id,
-                    Name = category.Name,
-                    UrlHandle = category.UrlHandle
-                };
-                
-                return Ok(response);
-            }
-        }
+            var category = await categoryRepository.GetByIdAsync(id);
+            if (category == null) return NotFound();
 
-        [HttpPut]
-        [Route("{id}")]
-        public async Task<IActionResult> EditCategory(Guid id,  UpdateCategoryRequestdto updateCategoryRequestdto)
-        {
-            var category = new Category
-            {
-                Id = id,
-                Name = updateCategoryRequestdto.Name,
-                UrlHandle = updateCategoryRequestdto.UrlHandle
-            };
-            var updatedCategory = await categoryRepository.EdidAsync(category);
-
-            if (updatedCategory == null)
-            {
-                return NotFound();
-            }
-            else
-            {
-                var response = new CategoryDto
-                {
-                    Id = updatedCategory.Id,
-                    Name = updatedCategory.Name,
-                    UrlHandle = updatedCategory.UrlHandle
-                };
-                return Ok(response);
-            }
-
-        }
-
-        [HttpDelete]
-        [Route("{id}")]
-        public async Task<IActionResult> DeleteCategory( [FromRoute] Guid id)
-        {
-            var category = await categoryRepository.DeleteAsync(id);
-            if (category == null)
-            {
-                return NotFound();
-            }
-            var response = new CategoryDto
+            var dto = new CategoryDto
             {
                 Id = category.Id,
                 Name = category.Name,
-                UrlHandle = category.UrlHandle
+                Description = category.Description,
+                IsActive = category.IsActive,
+                ProductCount = category.Products?.Count ?? 0
             };
-            return Ok(response);
 
+            return Ok(dto);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<CategoryDto>> Create([FromBody] CreateCategoryDto dto)
+        {
+            var category = new Category
+            {
+                Name = dto.Name,
+                Description = dto.Description,
+                IsActive = dto.IsActive
+            };
+
+            var created = await categoryRepository.CreateAsync(category);
+
+            var result = new CategoryDto
+            {
+                Id = created.Id,
+                Name = created.Name,
+                Description = created.Description,
+                IsActive = created.IsActive,
+                ProductCount = 0
+            };
+
+            return CreatedAtAction(nameof(Get), new { id = created.Id }, result);
+        }
+
+        [HttpPut("{id:int}")]
+        public async Task<ActionResult<CategoryDto>> Update(int id, [FromBody] UpdateCategoryDto dto)
+        {
+            var category = await categoryRepository.GetByIdAsync(id);
+            if (category == null) return NotFound();
+
+            category.Name = dto.Name;
+            category.Description = dto.Description;
+            category.IsActive = dto.IsActive;
+
+            var updated = await categoryRepository.UpdateAsync(category);
+
+            var result = new CategoryDto
+            {
+                Id = updated.Id,
+                Name = updated.Name,
+                Description = updated.Description,
+                IsActive = updated.IsActive,
+                ProductCount = updated.Products?.Count ?? 0
+            };
+
+            return Ok(result);
+        }
+
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var category = await categoryRepository.GetByIdAsync(id);
+            if (category == null) return NotFound();
+
+            await categoryRepository.DeleteAsync(category);
+            return NoContent();
         }
 
 
