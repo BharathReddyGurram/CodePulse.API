@@ -99,6 +99,10 @@ namespace CodePulse.API.Controllers
         new System.Security.Claims.Claim(
             System.Security.Claims.ClaimTypes.Role,
             user.Role.ToString()
+        ),
+        new System.Security.Claims.Claim(
+            System.Security.Claims.ClaimTypes.Name,
+            user.FirstName.ToString()
         )
     };
 
@@ -121,7 +125,8 @@ namespace CodePulse.API.Controllers
             {
                 Token = tokenString,
                 ExpiresAt = tokenDescriptor.Expires!.Value,
-                Role = user.Role.ToString()
+                Role = user.Role.ToString(),
+                Firstname = user.FirstName
             });
         }
 

@@ -48,6 +48,9 @@
             // Meta
             public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
             public DateTime? UpdatedAt { get; set; }
+        // Product.cs (add at bottom)
+        public ICollection<ProductCategory> ProductCategories { get; set; } = new List<ProductCategory>();
 
-  }
+
+    }
 }
